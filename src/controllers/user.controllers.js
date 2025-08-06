@@ -28,21 +28,25 @@ const registerUser = asyncHandler2(async (req, res) => {
     throw new ApiError(409, "User already exists");
   }
 
-  // this is coming from multer upload middleware used in user routes
+  // 'req.files' is coming from multer upload middleware used in user routes
   const avatarLocalPath = req.files?.avatar[0]?.path;
-  const coverImageLocalPath = req.files?.coverImage[0]?.path;
-
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar is required");
   }
 
+  let coverImageLocalPath;
+  if (req.files?.coverImage && req.files?.coverImage.length > 0) {
+    coverImageLocalPath = req.files?.coverImage[0]?.path;
+  }
+
   const avatar = await uploadOnCloudinary(avatarLocalPath);
-  const cover = await uploadOnCloudinary(coverImageLocalPath);
+  const cover = await uploadOnCloudinary(coverImageLocalPath); //here cloudinary will handle the null or undefined
 
   if (!avatar) {
     throw new ApiError(400, "Avatar image is required");
   }
 
+  // DB call
   const user = await User.create({
     fullName,
     avatar: avatar.url,
@@ -52,6 +56,7 @@ const registerUser = asyncHandler2(async (req, res) => {
     password,
   });
 
+  // DB call
   const createdUser = await User.findById(user._id, {
     password: 0,
     refreshToken: 0,
